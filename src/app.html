@@ -36,25 +36,25 @@
       <main class="wrapper">
         <h2>Recommended</h2>
 
-        <div class="recommended">
+        <div v-for="product in inventory.slice(0,3)" class="recommended">
           <div class="card">
-            <div class="card-title">Carrots</div>
+            <div class="card-title">{{product.name}}</div>
             <div class="card-body">
-              <i class="icofont-10x icofont-carrot"></i>
+              <i v-bind:class="product.iconClass"></i>
               <form>
                 <div class="row">
                   <div class="cell">
                     <label>Type:</label>
                   </div>
                   <div class="cell">
-                    <em>Vegetable</em>
+                    <em>{{product.type}}</em>
                   </div>
                 </div>
                 <div class="row">
                   <div class="cell">
                     <label>Price:</label>
                   </div>
-                  <div class="cell">$4.82</div>
+                  <div class="cell">${{product.price["USD"]}}</div>
                 </div>
                 <div class="row">
                   <div class="cell">
@@ -72,78 +72,15 @@
               </button>
             </div>
           </div>
-
-          <div class="card">
-            <div class="card-title">Pineapples</div>
-            <div class="card-body">
-              <i class="icofont-10x icofont-pineapple"></i>
-              <form>
-                <div class="row">
-                  <div class="cell">
-                    <label>Type:</label>
-                  </div>
-                  <div class="cell">
-                    <em>Fruit</em>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="cell">
-                    <label>Price:</label>
-                  </div>
-                  <div class="cell">$1.62</div>
-                </div>
-                <div class="row">
-                  <div class="cell">
-                    <label>Quantity:</label>
-                  </div>
-                  <div class="cell">
-                    <input type="number" v-model="inventory.pineapples" />
-                  </div>
-                </div>
-              </form>
-            </div>
-            <div class="card-footer">
-              <button class="btn btn-light">Add to cart</button>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Cherries</div>
-            <div class="card-body">
-              <i class="icofont-10x icofont-cherry"></i>
-              <form>
-                <div class="row">
-                  <div class="cell">
-                    <label>Type:</label>
-                  </div>
-                  <div class="cell">
-                    <em>Fruit</em>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="cell">
-                    <label>Price:</label>
-                  </div>
-                  <div class="cell">$1.04</div>
-                </div>
-                <div class="row">
-                  <div class="cell">
-                    <label>Quantity:</label>
-                  </div>
-                  <div class="cell">
-                    <input type="number" v-model="inventory.cherries" />
-                  </div>
-                </div>
-              </form>
-            </div>
-            <div class="card-footer">
-              <button class="btn btn-light">Add to cart</button>
-            </div>
-          </div>
         </div>
       </main>
 
-      <sidebar v-if="showSidebar" :toggle="toggleSidebar"></sidebar>
+      <sidebar
+        v-if="showSidebar"
+        :toggle="toggleSidebar"
+        :cart="cart"
+        :prices="prices"
+      />
 
       <footer></footer>
     </div>
@@ -153,11 +90,12 @@
         data() {
           return {
             showSidebar: false,
-            inventory: {
-              carrots: 0,
-              pineapples: 0,
-              cherries: 0,
+            prices: {
+              carrots: 1.15,
+              pineapples: 2.25,
+              cherries: 3.89,
             },
+            inventory: [],
             cart: {
               carrots: 0,
               pineapples: 0,
@@ -166,6 +104,9 @@
           };
         },
         methods: {
+          iconClassStr(product) {
+            return `icofont-10x icofont-${product.icon}`;
+          },
           addToCart(type) {
             this.cart[type] += this.inventory[type];
             console.log(this.cart);
@@ -174,10 +115,26 @@
             this.showSidebar = !this.showSidebar;
           },
         },
+        async mounted() {
+          const res = await fetch("./food.json");
+          const data = await res.json();
+          const dataWithIcons = data.map((item) => {
+            return {
+              ...item,
+              iconClass: this.iconClassStr(item),
+            };
+          });
+          this.inventory = dataWithIcons;
+        },
       });
 
       app.component("sidebar", {
-        props: ["toggle"],
+        props: ["toggle", "cart", "prices"],
+        computed: {
+          cartTotal() {
+            return (this.cart.carrots * this.prices.carrots).toFixed(2);
+          },
+        },
         template: `
          <aside class="cart-container">
         <div class="cart">
@@ -211,9 +168,9 @@
                     <i class="icofont-carrot icofont-3x"></i>
                   </td>
                   <td>Carrot</td>
-                  <td>$1.00</td>
-                  <td class="center">1</td>
-                  <td>$1.00</td>
+                  <td>\${{prices.carrots}}</td>
+                  <td class="center">{{cart.carrots}}</td>
+                  <td>\${{cart.carrots * prices.carrots}}</td>
                   <td class="center">
                     <button class="btn btn-light cart-remove">&times;</button>
                   </td>
@@ -226,7 +183,7 @@
             </p>
             <div class="spread">
               <span>
-                <strong>Total:</strong> $1.00
+                <strong>Total:</strong> \${{cartTotal}}
               </span>
               <button class="btn btn-light">Checkout</button>
             </div>
