@@ -36,12 +36,12 @@
       <main class="wrapper">
         <h2>Recommended</h2>
 
-        <div
-          v-for="(product, index) in inventory.slice(0,3)"
-          class="recommended"
-          :key="product.id"
-        >
-          <div class="card">
+        <div class="recommended">
+          <div
+            class="card"
+            v-for="(product, index) in inventory.slice(0,3)"
+            :key="product.id"
+          >
             <div class="card-title">{{product.name}}</div>
             <div class="card-body">
               <i v-bind:class="product.iconClass"></i>
