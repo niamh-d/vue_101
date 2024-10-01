@@ -23,7 +23,7 @@
         </nav>
         <a @click="toggleSidebar" href="#" class="top-bar-cart-link">
           <i class="icofont-cart-alt icofont-1x"></i>
-          <span>Cart (0)</span>
+          <span>Cart ({{totalQuantity}})</span>
         </a>
       </header>
 
@@ -65,7 +65,11 @@
                     <label>Quantity:</label>
                   </div>
                   <div class="cell">
-                    <input type="number" v-model.number="product.quantity" />
+                    <input
+                      type="number"
+                      v-model.number="product.quantity"
+                      placeholder="0"
+                    />
                   </div>
                 </div>
               </form>
@@ -87,6 +91,7 @@
         :toggle="toggleSidebar"
         :cart="cart"
         :inventory="inventory"
+        :remove="removeItem"
       />
 
       <footer></footer>
@@ -101,6 +106,14 @@
             cart: {},
           };
         },
+        computed: {
+          totalQuantity() {
+            return Object.values(this.cart).reduce(
+              (acc, curr) => acc + curr,
+              0
+            );
+          },
+        },
         methods: {
           iconClassStr(product) {
             return `icofont-10x icofont-${product.icon}`;
@@ -108,10 +121,13 @@
           addToCart(name, index) {
             if (!this.cart[name]) this.cart[name] = 0;
             this.cart[name] += this.inventory[index].quantity;
-            console.log(this.cart);
+            this.inventory[index].quantity = 0;
           },
           toggleSidebar() {
             this.showSidebar = !this.showSidebar;
+          },
+          removeItem(name) {
+            delete this.cart[name];
           },
         },
         async mounted() {
@@ -128,7 +144,7 @@
       });
 
       app.component("sidebar", {
-        props: ["toggle", "cart", "inventory"],
+        props: ["toggle", "cart", "inventory", "remove"],
         methods: {
           getPrice(name) {
             return this.inventory
@@ -180,7 +196,7 @@
                   <td class="center">{{quantity}}</td>
                   <td>\${{(quantity * getPrice(key)).toFixed(2)}}</td>
                   <td class="center">
-                    <button class="btn btn-light cart-remove">&times;</button>
+                    <button @click="remove(key)" class="btn btn-light cart-remove">&times;</button>
                   </td>
                 </tr>
               </tbody>
