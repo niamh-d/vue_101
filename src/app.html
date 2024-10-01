@@ -36,7 +36,11 @@
       <main class="wrapper">
         <h2>Recommended</h2>
 
-        <div v-for="product in inventory.slice(0,3)" class="recommended">
+        <div
+          v-for="(product, index) in inventory.slice(0,3)"
+          class="recommended"
+          :key="product.id"
+        >
           <div class="card">
             <div class="card-title">{{product.name}}</div>
             <div class="card-body">
@@ -54,20 +58,23 @@
                   <div class="cell">
                     <label>Price:</label>
                   </div>
-                  <div class="cell">${{product.price["USD"]}}</div>
+                  <div class="cell">${{product.price["USD"].toFixed(2)}}</div>
                 </div>
                 <div class="row">
                   <div class="cell">
                     <label>Quantity:</label>
                   </div>
                   <div class="cell">
-                    <input type="number" v-model.number="inventory.carrots" />
+                    <input type="number" v-model.number="product.quantity" />
                   </div>
                 </div>
               </form>
             </div>
             <div class="card-footer">
-              <button @click="addToCart('carrots')" class="btn btn-light">
+              <button
+                @click="addToCart(product.name, index)"
+                class="btn btn-light"
+              >
                 Add to cart
               </button>
             </div>
@@ -79,7 +86,7 @@
         v-if="showSidebar"
         :toggle="toggleSidebar"
         :cart="cart"
-        :prices="prices"
+        :inventory="inventory"
       />
 
       <footer></footer>
@@ -90,25 +97,17 @@
         data() {
           return {
             showSidebar: false,
-            prices: {
-              carrots: 1.15,
-              pineapples: 2.25,
-              cherries: 3.89,
-            },
             inventory: [],
-            cart: {
-              carrots: 0,
-              pineapples: 0,
-              cherries: 0,
-            },
+            cart: {},
           };
         },
         methods: {
           iconClassStr(product) {
             return `icofont-10x icofont-${product.icon}`;
           },
-          addToCart(type) {
-            this.cart[type] += this.inventory[type];
+          addToCart(name, index) {
+            if (!this.cart[name]) this.cart[name] = 0;
+            this.cart[name] += this.inventory[index].quantity;
             console.log(this.cart);
           },
           toggleSidebar() {
@@ -129,10 +128,19 @@
       });
 
       app.component("sidebar", {
-        props: ["toggle", "cart", "prices"],
-        computed: {
-          cartTotal() {
-            return (this.cart.carrots * this.prices.carrots).toFixed(2);
+        props: ["toggle", "cart", "inventory"],
+        methods: {
+          getPrice(name) {
+            return this.inventory
+              .find((item) => item.name === name)
+              .price.USD.toFixed(2);
+          },
+          calculateTotal() {
+            const total = Object.entries(this.cart).reduce(
+              (acc, curr, index) => acc + curr[1] * this.getPrice(curr[0]),
+              0
+            );
+            return total.toFixed(2);
           },
         },
         template: `
@@ -163,14 +171,14 @@
                 </tr>
               </thead>
               <tbody>
-                <tr>
+                <tr v-for="(quantity, key, i) in cart" :key="i">
                   <td>
                     <i class="icofont-carrot icofont-3x"></i>
                   </td>
-                  <td>Carrot</td>
-                  <td>\${{prices.carrots}}</td>
-                  <td class="center">{{cart.carrots}}</td>
-                  <td>\${{cart.carrots * prices.carrots}}</td>
+                  <td>{{key}}</td>
+                  <td>\${{getPrice(key)}}</td>
+                  <td class="center">{{quantity}}</td>
+                  <td>\${{(quantity * getPrice(key)).toFixed(2)}}</td>
                   <td class="center">
                     <button class="btn btn-light cart-remove">&times;</button>
                   </td>
@@ -178,12 +186,12 @@
               </tbody>
             </table>
 
-            <p class="center">
+            <p class="center" v-if="!Object.keys(cart).length">
               <em>No items in cart</em>
             </p>
             <div class="spread">
               <span>
-                <strong>Total:</strong> \${{cartTotal}}
+                <strong>Total:</strong> \${{calculateTotal()}}
               </span>
               <button class="btn btn-light">Checkout</button>
             </div>
